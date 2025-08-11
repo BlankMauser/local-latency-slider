@@ -2,6 +2,9 @@ mod framerate;
 mod ldn;
 mod utils;
 
+#[cfg(feature = "run_tests")]
+mod experiments;
+
 use skyline::nn::ui2d::Pane;
 
 use utils::{PaneExt, TextBoxExt};
@@ -122,4 +125,15 @@ pub fn main() {
     framerate::install();
     ldn::install();
     skyline::install_hook!(update_css);
+
+    #[cfg(feature = "run_tests")]
+    {
+        println!("RUNNING TESTS...");
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        println!("MEASURING SYSTEM SLEEP ACCURACY...");
+        experiments::measure_sleep_accuracy(Some(8));
+        println!("MEASURING SPIN STRATEGY LATENCY...");
+        experiments::measure_spin_strategy_latency(Some(8));
+    }
+    
 }

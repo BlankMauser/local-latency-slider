@@ -1,6 +1,6 @@
 [package]
 name = "local-latency-slider"
-version = "3.2.0"
+version = "4.0.0"
 authors = ["blu-dev", "saad-script"]
 edition = "2021"
 
@@ -14,6 +14,7 @@ crate-type = ["cdylib"]
 ninput = { git = "https://github.com/blu-dev/ninput" }
 skyline = { git = "https://github.com/ultimate-research/skyline-rs" }
 libc-nnsdk = { git = "https://github.com/ultimate-research/libc-nnsdk" }
+rand = { git = "https://github.com/skyline-rs/rand", optional = true }
 
 [profile.dev]
 panic = "abort"
@@ -21,3 +22,7 @@ panic = "abort"
 [profile.release]
 panic = "abort"
 lto = true
+
+[features]
+default = []
+run_tests = ["rand"]

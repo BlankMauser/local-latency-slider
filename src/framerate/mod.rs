@@ -1,9 +1,11 @@
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::time::Duration;
 
 use crate::ldn;
 use crate::utils;
 use skyline::hooks::InlineCtx;
 
+const SPIN_SLEEP_THRESHOLD_NANOS: u128 = 100_000;
 const DEFAULT_TARGET_FRAMERATE: u32 = 60;
 const MAX_TARGET_FRAMERATE: u32 = 240;
 const TARGET_FRAMERATE_INC: u32 = 60;
@@ -79,13 +81,27 @@ unsafe fn scene_update(_: &InlineCtx) {
     if vsync_enabled {
         return;
     }
-    let target_ticks = utils::get_tick_freq() / target_framerate as u64;
+    
+    let tick_freq = utils::get_tick_freq();
+    let target_ticks = tick_freq / target_framerate as u64;
     if let Some(prev_tick) = PREV_TICK {
+        let elapsed_ticks = skyline::nn::os::GetSystemTick() - prev_tick;
+        let ticks_left = target_ticks - elapsed_ticks;
+        let nanos_left = (ticks_left as u128)
+            .checked_mul(1_000_000_000)
+            .and_then(|n| n.checked_div(tick_freq as u128))
+            .unwrap_or(0);
+        if nanos_left > SPIN_SLEEP_THRESHOLD_NANOS {
+            std::thread::sleep(Duration::from_nanos(
+                (nanos_left - SPIN_SLEEP_THRESHOLD_NANOS).try_into().unwrap_or(0)
+            ));
+        }
         loop {
             let elapsed_ticks = skyline::nn::os::GetSystemTick() - prev_tick;
             if elapsed_ticks >= target_ticks {
                 break;
             }
+            std::hint::spin_loop();
         }
     }
     PREV_TICK = Some(skyline::nn::os::GetSystemTick());
