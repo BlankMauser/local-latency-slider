@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::Duration;
-
+use symbaker::symbaker;
 use crate::ldn;
 use crate::utils;
 use skyline::hooks::InlineCtx;
@@ -60,6 +60,7 @@ impl ToString for FramerateConfig {
 
 static FRAMERATE_CONFIG: FramerateConfig = FramerateConfig::default();
 
+#[symbaker]
 #[skyline::hook(offset = 0x135caf8, inline)]
 unsafe fn on_game_speed_calc(_: &InlineCtx) {
     if !ldn::is_local_online() {
@@ -68,6 +69,7 @@ unsafe fn on_game_speed_calc(_: &InlineCtx) {
     set_internal_framerate(3600 / FRAMERATE_CONFIG.target_framerate.load(Ordering::SeqCst));
 }
 
+#[symbaker]
 #[skyline::hook(offset = 0x3747b7c, inline)]
 unsafe fn scene_update(_: &InlineCtx) {
     static mut PREV_TICK: Option<skyline::nn::os::Tick> = None;
@@ -86,7 +88,7 @@ unsafe fn scene_update(_: &InlineCtx) {
     let target_ticks = tick_freq / target_framerate as u64;
     if let Some(prev_tick) = PREV_TICK {
         let elapsed_ticks = skyline::nn::os::GetSystemTick() - prev_tick;
-        let ticks_left = target_ticks - elapsed_ticks;
+        let ticks_left = target_ticks.saturating_sub(elapsed_ticks);
         let nanos_left = (ticks_left as u128)
             .checked_mul(1_000_000_000)
             .and_then(|n| n.checked_div(tick_freq as u128))
@@ -158,21 +160,15 @@ pub fn poll() {
     let vsync_enabled = FRAMERATE_CONFIG.is_vsync_enabled.load(Ordering::SeqCst);
     match pressed_buttons {
         ninput::Buttons::UP => {
-            if vsync_enabled {
-                target_framerate += TARGET_FRAMERATE_INC;
-            }
+            target_framerate += TARGET_FRAMERATE_INC;
         }
         ninput::Buttons::DOWN => {
-            if vsync_enabled {
-                target_framerate -= TARGET_FRAMERATE_INC;
-            }
+            target_framerate -= TARGET_FRAMERATE_INC;
         }
         ninput::Buttons::X => {
-            if target_framerate == DEFAULT_TARGET_FRAMERATE {
-                FRAMERATE_CONFIG
-                    .is_vsync_enabled
-                    .store(!vsync_enabled, Ordering::SeqCst);
-            }
+            FRAMERATE_CONFIG
+                .is_vsync_enabled
+                .store(!vsync_enabled, Ordering::SeqCst);
         }
         _ => (),
     }

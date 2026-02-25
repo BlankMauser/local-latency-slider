@@ -1,6 +1,7 @@
 mod framerate;
 mod ldn;
 mod utils;
+use symbaker::symbaker;
 
 #[cfg(feature = "run_tests")]
 mod experiments;
@@ -9,6 +10,7 @@ use skyline::nn::ui2d::Pane;
 
 use utils::{PaneExt, TextBoxExt};
 
+#[symbaker]
 #[skyline::hook(offset = 0x1a12f60)]
 unsafe fn update_css(arg: u64) {
     if ldn::is_local_online() {
@@ -111,6 +113,28 @@ unsafe fn update_css(arg: u64) {
     call_original!(arg);
 }
 
+pub fn Is_Online() -> bool {
+    return ldn::is_local_online();
+}
+
+pub fn Install_Latency_Slider() {
+    
+    if !utils::is_yuzu_emulator() {
+        skyline::error::show_error(
+            1,
+            "Compatibility Error",
+            "Local Latency Slider mod is currently only supported on yuzu emulator",
+        );
+        return;
+    }
+    
+    framerate::install();
+    ldn::install();
+    skyline::install_hook!(update_css);
+    
+}
+
+#[cfg(feature = "nro-entry")]
 #[skyline::main(name = "local-latency-slider")]
 pub fn main() {
     if !utils::is_yuzu_emulator() {

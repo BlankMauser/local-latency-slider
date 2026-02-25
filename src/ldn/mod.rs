@@ -2,7 +2,7 @@ pub mod latency_slider;
 pub mod net;
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-
+use symbaker::symbaker;
 use crate::framerate;
 use crate::ldn::net::interface::{get_network_role, NetworkRole};
 use crate::utils::TextBoxExt;
@@ -15,6 +15,7 @@ static LOCAL_ROOM_PANE_HANDLE: AtomicU64 = AtomicU64::new(0);
 // workaround for sv_information::is_ready_go() being unreliable for ldn in some cases
 static IN_GAME: AtomicBool = AtomicBool::new(false);
 
+#[symbaker]
 #[skyline::hook(offset = 0x22d9d10, inline)]
 unsafe fn online_melee_any_scene_create(_: &InlineCtx) {
     LOCAL_ROOM_PANE_HANDLE.store(0, Ordering::SeqCst);
@@ -22,6 +23,7 @@ unsafe fn online_melee_any_scene_create(_: &InlineCtx) {
     framerate::set_vsync_enabled(true);
 }
 
+#[symbaker]
 #[skyline::hook(offset = 0x22d9c40, inline)]
 unsafe fn bg_matchmaking_seq(_: &InlineCtx) {
     LOCAL_ROOM_PANE_HANDLE.store(0, Ordering::SeqCst);
@@ -29,6 +31,7 @@ unsafe fn bg_matchmaking_seq(_: &InlineCtx) {
     framerate::set_vsync_enabled(true);
 }
 
+#[symbaker]
 #[skyline::hook(offset = 0x235a650, inline)]
 unsafe fn main_menu(_: &InlineCtx) {
     LOCAL_ROOM_PANE_HANDLE.store(0, Ordering::SeqCst);
@@ -37,14 +40,17 @@ unsafe fn main_menu(_: &InlineCtx) {
 }
 
 // called on local online menu init
+#[symbaker]
 #[skyline::hook(offset = 0x1bd45e0, inline)]
 unsafe fn store_local_menu_pane(ctx: &InlineCtx) {
     update_in_game_flag(false);
     CUSTOM_CSS_NUM_PLAYERS_FLAG = true;
-    let handle = *((*((*ctx.registers[0].x.as_ref() + 8) as *const u64) + 0x10) as *const u64);
+    let local_menu_obj = *((ctx.registers[0].x() + 8) as *const u64);
+    let handle = *((local_menu_obj + 0x10) as *const u64);
     LOCAL_ROOM_PANE_HANDLE.store(handle, Ordering::SeqCst);
 }
 
+#[symbaker]
 #[skyline::hook(offset = 0x1bd7a80, inline)]
 unsafe fn update_local_menu(_: &InlineCtx) {
     let pane_handle = LOCAL_ROOM_PANE_HANDLE.load(Ordering::SeqCst) as *mut u64 as *mut Pane;
@@ -57,6 +63,7 @@ unsafe fn update_local_menu(_: &InlineCtx) {
     }
 }
 
+#[symbaker]
 #[skyline::hook(offset = 0x1a26200)]
 unsafe fn css_player_pane_num_changed(param_1: i64, prev_num: i32, changed_by_player: u32) {
     if is_local_online()
@@ -70,6 +77,7 @@ unsafe fn css_player_pane_num_changed(param_1: i64, prev_num: i32, changed_by_pl
     call_original!(param_1, prev_num, changed_by_player);
 }
 
+#[symbaker]
 #[skyline::hook(offset = 0x1345558, inline)]
 unsafe fn on_match_start(_: &InlineCtx) {
     if !is_local_online() {
@@ -78,6 +86,7 @@ unsafe fn on_match_start(_: &InlineCtx) {
     update_in_game_flag(true);
 }
 
+#[symbaker]
 #[skyline::hook(offset = 0x1d68b94, inline)]
 unsafe fn on_match_end(_: &InlineCtx) {
     if !is_local_online() {

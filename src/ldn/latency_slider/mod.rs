@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicI8, Ordering};
-
+use symbaker::symbaker;
 use skyline::hooks::InlineCtx;
 
 use crate::ldn;
@@ -63,16 +63,18 @@ impl ToString for Delay {
 
 static CURRENT_INPUT_DELAY: Delay = Delay::default();
 
+#[symbaker]
 #[skyline::hook(offset = 0x16ccc58, inline)]
 unsafe fn set_online_latency(ctx: &InlineCtx) {
     if ldn::is_local_online() {
-        let auto = *(*ctx.registers[19].x.as_ref() as *mut u8);
+        let latency_ptr = ctx.registers[19].x() as *mut u8;
+        let auto = *latency_ptr;
         let buffer = CURRENT_INPUT_DELAY.buffer.load(Ordering::SeqCst);
         CURRENT_INPUT_DELAY
             .last_auto
             .store(auto as i8, Ordering::SeqCst);
         if buffer >= 0 {
-            *(*ctx.registers[19].x.as_ref() as *mut u8) = buffer as u8;
+            *latency_ptr = buffer as u8;
         }
     }
 }

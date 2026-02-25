@@ -1,6 +1,7 @@
 pub mod interface;
 
 use interface::*;
+use symbaker::symbaker;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Mutex;
 use std::thread;
@@ -191,6 +192,7 @@ unsafe fn spawn_network_threads(network_role: NetworkRole) {
     });
 }
 
+#[symbaker]
 #[skyline::hook(replace = create_network)]
 unsafe fn on_network_created(network_config: u64, security_config: u64, user_config: u64) {
     println!("Creating network...");
@@ -198,6 +200,7 @@ unsafe fn on_network_created(network_config: u64, security_config: u64, user_con
     spawn_network_threads(NetworkRole::Host);
 }
 
+#[symbaker]
 #[skyline::hook(replace = connect_network)]
 unsafe fn on_network_connected(
     network_info: *mut NetworkInfo,
@@ -217,12 +220,14 @@ unsafe fn on_network_connected(
     spawn_network_threads(NetworkRole::Client);
 }
 
+#[symbaker]
 #[skyline::hook(replace = disconnect_network)]
 unsafe fn on_network_disconnected() {
     call_original!();
     println!("Network Disconnected");
 }
 
+#[symbaker]
 #[skyline::hook(replace = destroy_network)]
 unsafe fn on_network_destroyed() {
     call_original!();
