@@ -24,6 +24,7 @@ static PLAYER_NET_STATS: [PlayerNetInfo; 8] = [
     PlayerNetInfo::default(),
 ];
 
+#[symbaker]
 #[skyline::hook(replace = scan_network)]
 unsafe fn on_network_scan(
     network_info: *mut NetworkInfo,
