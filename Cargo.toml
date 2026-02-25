@@ -1,6 +1,6 @@
 [package]
 name = "local-latency-slider"
-version = "4.0.0"
+version = "4.0.1"
 authors = ["blu-dev", "saad-script"]
 edition = "2021"
 
